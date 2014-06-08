@@ -134,7 +134,7 @@ public class PixelKanji extends Kanji{
 	 * getZScore
 	 * Computes a zScore for a set of pixels
 	 * 
-	 * @param pixels the kanji's pixels to compute
+	 * @param pixels the pixels to compute
 	 * @return double zscore the score
 	 */
 	public double getZScore(int[][] pixels){

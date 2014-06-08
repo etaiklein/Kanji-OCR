@@ -9,7 +9,7 @@ import kanjiClasses.Kanji;
  * 
  * An Interface to use statistical processing for Classification Using Gaussian Distributions
  * 
- * Etai Klein
+ * @author etaiklein
  * 6/7/14
  * 
  */

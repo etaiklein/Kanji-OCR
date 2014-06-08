@@ -256,10 +256,4 @@ public class StrokeKanji extends Kanji{
 		return z;
 	}
 
-
 }
-
-
-
-
-

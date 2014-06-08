@@ -4,7 +4,7 @@ package classifierInterfaces;
  * 
  * An Interface to use the Weka Library for Multivariate Processing
  * 
- * Etai Klein
+ * @author etaiklein
  * 6/7/14
  * 
  */
