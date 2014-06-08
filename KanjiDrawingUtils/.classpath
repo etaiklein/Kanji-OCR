@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry exported="true" kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry exported="true" kind="lib" path="/Users/etaiklein/Android/Third Party/commons-io-2.4/commons-io-2.4.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/commons-lang3-3.3.2/commons-lang3-3.3.2-javadoc.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/commons-lang3-3.3.2/commons-lang3-3.3.2.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik-rasterizer.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik-slideshow.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik-squiggle.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik-svgpp.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik-ttf2svg.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/batik-1.7/batik.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/weka-3-6-11/remoteExperimentServer.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/weka-3-6-11/weka-src.jar"/>
+	<classpathentry kind="lib" path="/Users/etaiklein/Downloads/weka-3-6-11/weka.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
