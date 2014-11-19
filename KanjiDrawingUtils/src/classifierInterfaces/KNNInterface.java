@@ -14,7 +14,7 @@ import kanjiClasses.Kanji;
 
 public interface KNNInterface {
 
-	void test(File train, File test, String fileType);
+	int test(File train, File test, String fileType);
 
 	void train(Kanji k);
 

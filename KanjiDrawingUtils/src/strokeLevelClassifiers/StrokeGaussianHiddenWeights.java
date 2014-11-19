@@ -22,19 +22,19 @@ package strokeLevelClassifiers;
 
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
 import classifierInterfaces.GaussianInterface;
-
 import kanjiClasses.Kanji;
 import kanjiClasses.StrokeKanji;
 
 
 
-public class StrokeGaussian implements GaussianInterface{
-
+public class StrokeGaussianHiddenWeights implements GaussianInterface{
+	
 	//correct, incorrect
 	public int[] zScoreStats = new int[2];
 
@@ -51,8 +51,7 @@ public class StrokeGaussian implements GaussianInterface{
 	int[][] allKanjiMoves =  new int[60][29];
 
 	int currentKanji;
-	
-
+		
 	public void updateDistribution(Kanji k){
 		allKanjiLengths[currentKanji] = ((StrokeKanji) k).lengths;
 		allKanjiAngles[currentKanji] = ((StrokeKanji) k).angles;
@@ -60,6 +59,10 @@ public class StrokeGaussian implements GaussianInterface{
 		allKanjiMoves[currentKanji++] = ((StrokeKanji) k).moves;
 	}
 
+	HashMap<String, Integer> memo = new HashMap<String, Integer>();
+	int best = 0;
+	String bestWeights = ""; 
+	
 	@Override
 	/**
 	 * test
@@ -77,8 +80,8 @@ public class StrokeGaussian implements GaussianInterface{
 	 * 
 	 */
 	public void test(File test, File train, String fileType) {
-
-
+		//training
+		
 		// open the last entry's file. Record the number of files.
 		int numfiles = 0;
 		File fileEntry = train.listFiles()[0];
@@ -94,7 +97,7 @@ public class StrokeGaussian implements GaussianInterface{
 		allKanjiAngles = new int[numfiles][30];
 		int[][] allKanjiDistances =  new int[60][60];
 		allKanjiMoves = new int[numfiles][29];
-
+	
 		for (StrokeKanji kanji : StrokeKanji.getKanjis(fileEntry, fileType)){
 			//if I haven't seen this label before...
 			if (!kanjiInfoMap.containsKey(kanji.label)){
@@ -106,7 +109,7 @@ public class StrokeGaussian implements GaussianInterface{
 								//and update the distribution
 								updateDistribution(innerkanji);
 							}
-
+	
 						}
 					}
 				}
@@ -121,65 +124,92 @@ public class StrokeGaussian implements GaussianInterface{
 				allKanjiMoves = new int[numfiles][29];
 				currentKanji = 0;
 			}
-
+	
 		}
-
+		
+		hiddenWeights(test, train, fileType, 1, 1, 1, 1, 0);
+		
+		System.out.println("best " + best + " best weights " + bestWeights);
+	}
+	
+	public int hiddenWeights(File test, File train, String fileType, int weightLengths, int weightAngles, int weightDistances, int weightMoves, int max) {
+		if (memo.keySet().contains(weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves)){
+			System.out.println("PRUNED " + weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves);
+			return best;
+		}
 		//test step
-
+	
 		//use lowestZ for z-score and lowest distance for univariate
 		double lowestZ = Integer.MAX_VALUE;
-		double lowestZ2 = Integer.MAX_VALUE;
-
+		double lowestZDistance = Integer.MAX_VALUE;
+	
 		char guess1 = 0;
-
+	
 		char guess2 = 0;
-
+	
 		for (final File innerFileEntry : test.listFiles()) {
 			if (innerFileEntry.getName().endsWith(fileType)){
 				for (StrokeKanji kanji : StrokeKanji.getKanjis(innerFileEntry, fileType)){
-
+	
 					//get the kanji with the lowest zscore from the map
 					Iterator<Entry<Character, StrokeKanji>> iter = kanjiInfoMap.entrySet().iterator();
 					lowestZ = Integer.MAX_VALUE;
-					lowestZ2 = Integer.MAX_VALUE;
+					lowestZDistance = Integer.MAX_VALUE;
 					while (iter.hasNext()){
 						StrokeKanji ki = kanjiInfoMap.get(iter.next().getKey());
 						
 						//get scores
-						double distance = ki.distance(kanji);
-						double zScore = ki.getZScore(kanji);
-
+						double distance = ki.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
+						double zScore = ki.getZScore(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
+	
 						//keep the best
 						if (zScore < lowestZ) { 
 							guess1 = ki.label;
 							lowestZ = zScore;
 						}
-						if (distance < lowestZ2) {
+						if (distance < lowestZDistance) {
 							guess2 = ki.label;
-							lowestZ2 = distance;
+							lowestZDistance = distance;
 						}
 					}
-
+	
 					if (guess1 == kanji.label){
 						zScoreStats[0]++;
 					}else{zScoreStats[1]++;}
-
+	
 					if (guess2 == kanji.label){
 						distanceStats[0]++;
 					}else{distanceStats[1]++;}
-
-
-					System.out.println("guessZsco: " + guess1 + " actual: " + kanji.label+ " correct: " + zScoreStats[0] + 
-							" incorrect: " + zScoreStats[1] + " percentage: "  + ((double)zScoreStats[0]/(double)(zScoreStats[0]+zScoreStats[1])));
-
-					System.out.println("guessDist: " + guess2 + " actual: " + kanji.label + " correct: " + distanceStats[0] + 
-							" incorrect: " + distanceStats[1] + " percentage: "  + ((double)distanceStats[0]/(double)(distanceStats[0]+distanceStats[1])));
-
+	
+//	
+//					System.out.println("guessZsco: " + guess1 + " actual: " + kanji.label+ " correct: " + zScoreStats[0] + 
+//							" incorrect: " + zScoreStats[1] + " percentage: "  + ((double)zScoreStats[0]/(double)(zScoreStats[0]+zScoreStats[1])));
+//	
+//					System.out.println("guessDist: " + guess2 + " actual: " + kanji.label + " correct: " + distanceStats[0] + 
+//							" incorrect: " + distanceStats[1] + " percentage: "  + ((double)distanceStats[0]/(double)(distanceStats[0]+distanceStats[1])));
+//	
 				}		
 			}
 		}
-
+		int result = Math.max(distanceStats[0], zScoreStats[0]);
+		memo.put( weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves, result);
+		if (result > best){
+			best = result;
+			bestWeights = weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves;
+			System.out.println("score: " + best + " bestWeights" + bestWeights + " Dist " + distanceStats[0] + " ZSCO " + zScoreStats[0]);
+		}
+		zScoreStats = new int[2];
+		distanceStats = new int[2];
+		if (result > max){
+			System.out.println("LIVED best: " + best + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
+			hiddenWeights(test, train, fileType, weightLengths + 1, weightAngles, weightDistances, weightMoves, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles + 1, weightDistances, weightMoves, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances + 1, weightMoves, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances, weightMoves + 1, result);
+		}else{
+			System.out.println("DIED best: " + best + " " + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
+		}
+		return best;	
 	}
-
 
 }

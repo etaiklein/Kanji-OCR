@@ -268,7 +268,7 @@ public class PixelKnn implements KNNInterface{
 	 * 2.classify each new kanji
 	 * 
 	 */
-	public void test(File test, File train, String fileType){
+	public int test(File test, File train, String fileType){
 
 		//compute the size of the vectorspace
 		int i = 0;
@@ -301,6 +301,7 @@ public class PixelKnn implements KNNInterface{
 		}	
 
 		System.out.println("correct: " + stats[0] + " incorrect: " + stats[1] + " percent" + ((double)stats[0] / ((double)stats[1] + (double)stats[0])));
+		return (int)stats[0];
 	}
-
+	
 }

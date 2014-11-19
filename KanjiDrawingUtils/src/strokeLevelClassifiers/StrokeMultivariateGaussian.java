@@ -76,6 +76,8 @@ public class StrokeMultivariateGaussian implements MultivariateWEKA{
 		for (int i = 0; i < 30; i++){
 			atts.addElement(new Attribute("Length" + (i)));
 			atts.addElement(new Attribute("Angle" + (i)));
+			atts.addElement(new Attribute("DistanceX" + (i)));
+			atts.addElement(new Attribute("DistanceY" + (i)));
 			if (i != 30){
 				atts.addElement(new Attribute("Movement" + (i)));
 			}
@@ -104,6 +106,8 @@ public class StrokeMultivariateGaussian implements MultivariateWEKA{
 				for (int i = 0; i < 30; i++){
 					vals[j++] = kanji.lengths[i];
 					vals[j++] = kanji.angles[i];
+					vals[j++] = kanji.distances[i*2];
+					vals[j++] = kanji.distances[i*2 + 1];
 					if (i > 0){vals[j++] = kanji.moves[i];}
 					i++;
 				}

@@ -24,14 +24,16 @@ import java.util.HashMap;
 import java.util.Set;
 
 import classifierInterfaces.KNNInterface;
-
 import kanjiClasses.*;
 
 
 
 
-public class StrokeKnn implements KNNInterface{
-
+public class StrokeKnnHiddenWeights implements KNNInterface{
+	
+	HashMap<String, Integer> memo = new HashMap<String, Integer>();
+	int best = 0;
+	String bestWeights = ""; 
 
 	ArrayList<StrokeKanji> vectorSpace;
 	int kNearest;
@@ -42,7 +44,7 @@ public class StrokeKnn implements KNNInterface{
 	public HashMap<Character, Integer[]> counter = new HashMap<Character, Integer[]>();
 
 	//constructor initializes new vector space and k-nearest neighbors k value
-	public StrokeKnn(int k){
+	public StrokeKnnHiddenWeights(int k){
 		//a list of data points
 		vectorSpace = new ArrayList<StrokeKanji>();
 		//how many data points do we look at to determine a new point's classification?
@@ -82,14 +84,14 @@ public class StrokeKnn implements KNNInterface{
 	 * 
 	 */
 
-	public StrokeKanji classify(ArrayList<StrokeKanji> vectors, int knear, StrokeKanji kanji){
+	public StrokeKanji classify(ArrayList<StrokeKanji> vectors, int knear, StrokeKanji kanji, double weightLengths, double weightAngles, double weightDistances, double weightMoves){
 
 		//1. count distances
 
 		//for each new vector
 		for (StrokeKanji k : vectors){
 			//get the new vector's distance value
-			k.distance = (int) k.distance(kanji);
+			k.distance = (int) k.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
 		}
 
 
@@ -181,14 +183,12 @@ public class StrokeKnn implements KNNInterface{
 		Character original = kanji.label;
 		kanji.label = max;
 
-		System.out.println("label: " + max);
-
-		System.out.println("for label: " + original + " correct: " + counter.get(original)[0] + "false: " + counter.get(original)[1]);
-		System.out.println("for total at label " + kanji.label + " correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / ((double)stats[1] + (double)stats[1])));
+//		System.out.println("label: " + max);
+//		System.out.println("for label: " + original + " correct: " + counter.get(original)[0] + "false: " + counter.get(original)[1]);
+//		System.out.println("for total at label " + kanji.label + " correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / ((double)stats[1] + (double)stats[1])));
 
 		return kanji;
 	}
-
 
 	@Override
 	/**
@@ -204,9 +204,7 @@ public class StrokeKnn implements KNNInterface{
 	 * 2.classify each new kanji
 	 * 
 	 */
-	public int test(File test, File train, String fileType) {
-
-
+	public int test (File test, File train, String fileType) {
 		//training
 		for (final File fileEntry : train.listFiles()) {
 			if (fileEntry.getName().endsWith(fileType)){
@@ -218,25 +216,52 @@ public class StrokeKnn implements KNNInterface{
 				}
 			}
 		}
+				
+		hiddenWeights(test, train, fileType, 3, 1, 1, 12, 3, 0);
+		System.out.println("score: " + best + " bestWeights" + bestWeights);
+		return best;
+	}
 
-
+	//score: 89 bestWeights 3 1 1 12 3
+	//LIVED max: 97 result: 97 knn: 1 lengthsWeighted: 15 anglesWeights: 4 distanceWeighted: 94 movesWeighted: 30
+	// LIVED max: 98 result: 98 knn: 1 lengthsWeighted: 11 anglesWeights: 3 distanceWeighted: 117 movesWeighted: 20
+	//LIVED max: 83 result: 86 knn: 3 lengthsWeighted: 2 anglesWeights: 1 distanceWeighted: 1 movesWeighted: 3
+	public int hiddenWeights(File test, File train, String fileType, int knn, int w1, int w2, int w3, int w4, int max) {
+		if (memo.keySet().contains(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4)){
+			System.out.println("PRUNED " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4);
+			return best;
+		}
+		
 		//testing
+		stats = new int[2];
 		for (final File testFileEntry : test.listFiles()) {
 			if (testFileEntry.getName().endsWith(fileType)){
 				for (StrokeKanji kanji : StrokeKanji.getKanjis(testFileEntry, fileType)){
 					if (kanji != null){
-						classify(vectorSpace, kNearest, kanji);
+						classify(vectorSpace, kNearest, kanji, w1, w2, w3, w4);
 					}
 				}
-			}	
-
-			System.out.println("correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / ((double)stats[0] + (double)stats[1])));
-
+			}
 		}
-
-		return (int)stats[0];
+		
+		int result = stats[0];
+		memo.put(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4, result);
+		if (result >= best){
+			best = result;
+			bestWeights = " " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4;
+			System.out.println("score: " + best + " bestWeights " + bestWeights);
+		}
+		if (result >= max){
+			System.out.println("LIVED best: " + best + bestWeights + " max: " + max + " result: " + result +  " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
+			hiddenWeights(test, train, fileType, knn, w1, w2, w3 + 1, w4, result);
+			hiddenWeights(test, train, fileType, knn, w1, w2, w3, w4 + 1, result);
+			hiddenWeights(test, train, fileType, knn, w1, w2 + 1, w3, w4, result);
+			hiddenWeights(test, train, fileType, knn, w1 + 1, w2, w3, w4, result);
+		}else{
+			System.out.println("DIED best: " + best + bestWeights + " max: " + max + " result: " + result + " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
+		}
+		return best;
 	}
-
 
 
 
