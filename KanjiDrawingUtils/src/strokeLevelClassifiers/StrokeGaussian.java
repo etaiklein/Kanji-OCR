@@ -169,15 +169,12 @@ public class StrokeGaussian implements GaussianInterface{
 					}else{distanceStats[1]++;}
 
 
-					System.out.println("guessZsco: " + guess1 + " actual: " + kanji.label+ " correct: " + zScoreStats[0] + 
-							" incorrect: " + zScoreStats[1] + " percentage: "  + ((double)zScoreStats[0]/(double)(zScoreStats[0]+zScoreStats[1])));
-
-					System.out.println("guessDist: " + guess2 + " actual: " + kanji.label + " correct: " + distanceStats[0] + 
-							" incorrect: " + distanceStats[1] + " percentage: "  + ((double)distanceStats[0]/(double)(distanceStats[0]+distanceStats[1])));
-
 				}		
 			}
 		}
+		System.out.println("ZSCORE correct: " + zScoreStats[0] + " incorrect: " + zScoreStats[1] + " percentage: "  + ((double)zScoreStats[0]/(double)(zScoreStats[0]+zScoreStats[1])));
+
+		System.out.println("DISTANCE correct: " + distanceStats[0] + " incorrect: " + distanceStats[1] + " percentage: "  + ((double)distanceStats[0]/(double)(distanceStats[0]+distanceStats[1])));
 
 	}
 

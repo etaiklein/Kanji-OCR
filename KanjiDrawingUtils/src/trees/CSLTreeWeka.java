@@ -1,6 +1,5 @@
 package trees;
 
-import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
@@ -12,7 +11,7 @@ import weka.core.Instance;
 import weka.core.Instances;
 import kanjiClasses.StrokeKanji;
 
-public class CLSTree {
+public class CSLTreeWeka {
 		
 		private CLSNode root = new CLSNode(1);
 		public int depth = 1;
@@ -85,15 +84,17 @@ public class CLSTree {
 
 			attVals = new FastVector();
 
-			// - nominal
 			for (StrokeKanji kanji : root.data){
 				if (!attVals.contains("" + kanji.label)){
 					attVals.addElement("" + kanji.label);
 				}
 				
-			}		
-			
+			}
+
 			atts.addElement(new Attribute("KanjiName", attVals, 0));		
+			atts.addElement(new Attribute("numstrokes"));		
+
+			
 			
 			// - numerical features
 			for (int i = 0; i < 30; i++){
@@ -105,7 +106,7 @@ public class CLSTree {
 					atts.addElement(new Attribute("Movement" + (i)));
 				}
 			}
-			
+						
 
 			// 2. create Instances object
 			Instances I = new Instances("Kanjis", atts, 0);
@@ -113,7 +114,6 @@ public class CLSTree {
 			//	3. populate with leaf centroids
 			Queue<CLSNode> Q = new LinkedList<CLSNode>();
 			Q.add(root);
-			int i = 0;
 			while (!Q.isEmpty()){
 				CLSNode currentNode = Q.poll();
 				for (CLSNode child : currentNode.children){
@@ -121,9 +121,6 @@ public class CLSTree {
 				}
 				if (currentNode.children.isEmpty()){
 					I.add(currentNode.centroid);
-//					System.out.println(i + " " + currentNode.centroid + " " + I.instance(i));
-//					System.out.println(currentNode.centroid.toString(new Attribute("KanjiName", attVals, 0)) + I.instance(i).toString(new Attribute("KanjiName", attVals, 0)));
-					i++;
 				}
 			}
 			return I;
@@ -136,7 +133,6 @@ public class CLSTree {
 			HashMap<Integer, Integer> h = new HashMap<Integer,Integer>();
 			while (!Q.isEmpty()){
 				CLSNode currentNode = Q.poll();
-//				mystring += "\n" + currentNode.toString();
 				for (CLSNode child : currentNode.children){
 					Q.add(child);
 				}

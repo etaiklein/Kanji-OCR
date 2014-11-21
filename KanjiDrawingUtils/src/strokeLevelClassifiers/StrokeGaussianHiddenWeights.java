@@ -127,14 +127,14 @@ public class StrokeGaussianHiddenWeights implements GaussianInterface{
 	
 		}
 		
-		hiddenWeights(test, train, fileType, 1, 1, 1, 1, 0);
+		hiddenWeights(test, train, fileType, 1, 1, 1, 1, 1, 0);
 		
-		System.out.println("best " + best + " best weights " + bestWeights);
+		System.out.println("DISTANCEHW best " + best + " best weights " + bestWeights);
 	}
 	
-	public int hiddenWeights(File test, File train, String fileType, int weightLengths, int weightAngles, int weightDistances, int weightMoves, int max) {
+	public int hiddenWeights(File test, File train, String fileType, int weightLengths, int weightAngles, int weightDistances, int weightMoves, int weightStrokes, int max) {
 		if (memo.keySet().contains(weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves)){
-			System.out.println("PRUNED " + weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves);
+//			System.out.println("PRUNED " + weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves);
 			return best;
 		}
 		//test step
@@ -159,7 +159,7 @@ public class StrokeGaussianHiddenWeights implements GaussianInterface{
 						StrokeKanji ki = kanjiInfoMap.get(iter.next().getKey());
 						
 						//get scores
-						double distance = ki.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
+						double distance = ki.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves, weightStrokes);
 						double zScore = ki.getZScore(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
 	
 						//keep the best
@@ -193,21 +193,23 @@ public class StrokeGaussianHiddenWeights implements GaussianInterface{
 		}
 		int result = Math.max(distanceStats[0], zScoreStats[0]);
 		memo.put( weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves, result);
+		
+		//update global best
 		if (result > best){
 			best = result;
 			bestWeights = weightLengths + " " + weightAngles + " " + weightDistances + " " + weightMoves;
-			System.out.println("score: " + best + " bestWeights" + bestWeights + " Dist " + distanceStats[0] + " ZSCO " + zScoreStats[0]);
+//			System.out.println("score: " + best + " bestWeights" + bestWeights + " Dist " + distanceStats[0] + " ZSCO " + zScoreStats[0]);
 		}
 		zScoreStats = new int[2];
 		distanceStats = new int[2];
 		if (result > max){
-			System.out.println("LIVED best: " + best + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
-			hiddenWeights(test, train, fileType, weightLengths + 1, weightAngles, weightDistances, weightMoves, result);
-			hiddenWeights(test, train, fileType, weightLengths, weightAngles + 1, weightDistances, weightMoves, result);
-			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances + 1, weightMoves, result);
-			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances, weightMoves + 1, result);
+//			System.out.println("LIVED best: " + best + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
+			hiddenWeights(test, train, fileType, weightLengths + 1, weightAngles, weightDistances, weightMoves, weightStrokes, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles + 1, weightDistances, weightMoves, weightStrokes, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances + 1, weightMoves, weightStrokes, result);
+			hiddenWeights(test, train, fileType, weightLengths, weightAngles, weightDistances, weightMoves + 1, weightStrokes, result);
 		}else{
-			System.out.println("DIED best: " + best + " " + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
+//			System.out.println("DIED best: " + best + " " + bestWeights + "max: " + max + " result: " + result  + " lengthsWeighted: " + weightLengths + " anglesWeights: " + weightAngles + " distanceWeighted: " + weightDistances + " movesWeighted: " + weightMoves );
 		}
 		return best;	
 	}

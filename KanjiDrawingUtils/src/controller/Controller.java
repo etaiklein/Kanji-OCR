@@ -28,7 +28,7 @@ public class Controller {
 
 	File collectedFilesTest = new File("./kanjiTXTtest");
 	File collectedFilesTrain = new File("./kanjiTXTtrain");
-
+	
 	File casiaPixelTest = new File("./kanjiSVGtestOther");
 	File casiaPixelTrain = new File("./KanjiSVGtrainingOther");
 	File casiaPixelTestLite = new File("./chinatestlite");
@@ -44,6 +44,7 @@ public class Controller {
 
 		Controller controller = new Controller();
 
+		StriatoCorticalLoopWeka SLC = new StriatoCorticalLoopWeka();
 		PixelGaussian PixGau = new PixelGaussian();	
 		PixelKnn PixKNN = new PixelKnn(3);
 		StrokeGaussian StroGau = new StrokeGaussian();
@@ -53,6 +54,21 @@ public class Controller {
 		PixelMultivariateGaussian PMG = new PixelMultivariateGaussian();
 		StrokeMultivariateGaussian SMG = new StrokeMultivariateGaussian();
 
+		try {
+			System.out.println("---------RUNNING SLC---------");
+			SLC.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+			System.out.println("---------RUNNING KNN---------");
+			StroKNN.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+			System.out.println("---------RUNNING KNN HIDDEN WEIGHTS (wait time appx 2min)---------");
+			StroKNNHW.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+			System.out.println("---------RUNNING StroGau---------");
+			StroGau.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+			System.out.println("---------RUNNING StroGauHW---------");
+			StroGauHW.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+			System.out.println("Features in order: lengths, angles, moves, distances, strokes");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
 		
 		// /**Pixel Level Chinese DataSet Tests**/
 
@@ -101,7 +117,7 @@ public class Controller {
 
 		// /**Stroke level Collected DataSet Tests**/
 
-		// StroKNN.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
+//		
 		// //		correct: 74incorrect: 29percent0.7184466019417476
 		// // correct: 86incorrect: 17percent0.8349514563106796 w/ weights
 
@@ -109,11 +125,6 @@ public class Controller {
 		// //		guessZsco: 北 actual: 二 correct: 11 incorrect: 92 percentage: 0.10679611650485436
 		// //		guessDist: 二 actual: 二 correct: 55 incorrect: 48 percentage: 0.5339805825242718
 
-//		 StroGauHW.test(controller.collectedFilesTest, controller.collectedFilesTrain, ".txt");
-//				 //7 1 1 1 
-//				 // best 76 best weights 1 1 2 2 (Dist)
-//				 // best 38 best weights 1 8 1 6 (Zsco)
-				 
 		// //		multivariate KNN
 		// try{SMG.test(new IBk(), controller.collectedFilesTest, controller.collectedFilesTrain, ".txt", "IBK");}catch(java.lang.OutOfMemoryError e){System.out.println("out of memory IBK");}		
 		// //		success!Correctly Classified Instances          62/103               60.1942 %

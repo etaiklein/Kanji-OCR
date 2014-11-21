@@ -71,6 +71,7 @@ public class StrokeKnnHiddenWeights implements KNNInterface{
 	/** 
 	 * classify - 
 	 * labels a DataPoint based on the labels of the k-nearest neighbors of a vector
+	 * @param weightStrokes 
 	 * 
 	 * @param ArrayList<StrokeKanji> vectorspace (model)
 	 * @param int (nearest neighbors)
@@ -84,14 +85,14 @@ public class StrokeKnnHiddenWeights implements KNNInterface{
 	 * 
 	 */
 
-	public StrokeKanji classify(ArrayList<StrokeKanji> vectors, int knear, StrokeKanji kanji, double weightLengths, double weightAngles, double weightDistances, double weightMoves){
+	public StrokeKanji classify(ArrayList<StrokeKanji> vectors, int knear, StrokeKanji kanji, double weightLengths, double weightAngles, double weightDistances, double weightMoves, int weightStrokes){
 
 		//1. count distances
 
 		//for each new vector
 		for (StrokeKanji k : vectors){
 			//get the new vector's distance value
-			k.distance = (int) k.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves);
+			k.distance = (int) k.distance(kanji, weightLengths, weightAngles, weightDistances, weightMoves, weightStrokes);
 		}
 
 
@@ -217,7 +218,7 @@ public class StrokeKnnHiddenWeights implements KNNInterface{
 			}
 		}
 				
-		hiddenWeights(test, train, fileType, 3, 1, 1, 12, 3, 0);
+		hiddenWeights(test, train, fileType, 3, 0, 0, 0, 0, 0, 0);
 		System.out.println("score: " + best + " bestWeights" + bestWeights);
 		return best;
 	}
@@ -226,9 +227,9 @@ public class StrokeKnnHiddenWeights implements KNNInterface{
 	//LIVED max: 97 result: 97 knn: 1 lengthsWeighted: 15 anglesWeights: 4 distanceWeighted: 94 movesWeighted: 30
 	// LIVED max: 98 result: 98 knn: 1 lengthsWeighted: 11 anglesWeights: 3 distanceWeighted: 117 movesWeighted: 20
 	//LIVED max: 83 result: 86 knn: 3 lengthsWeighted: 2 anglesWeights: 1 distanceWeighted: 1 movesWeighted: 3
-	public int hiddenWeights(File test, File train, String fileType, int knn, int w1, int w2, int w3, int w4, int max) {
-		if (memo.keySet().contains(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4)){
-			System.out.println("PRUNED " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4);
+	public int hiddenWeights(File test, File train, String fileType, int knn, int w1, int w2, int w3, int w4, int w5, int max) {
+		if (memo.keySet().contains(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4 + " " + w5)){
+//			System.out.println("PRUNED " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4 + " " + w5);
 			return best;
 		}
 		
@@ -238,27 +239,28 @@ public class StrokeKnnHiddenWeights implements KNNInterface{
 			if (testFileEntry.getName().endsWith(fileType)){
 				for (StrokeKanji kanji : StrokeKanji.getKanjis(testFileEntry, fileType)){
 					if (kanji != null){
-						classify(vectorSpace, kNearest, kanji, w1, w2, w3, w4);
+						classify(vectorSpace, kNearest, kanji, w1, w2, w3, w4, w5);
 					}
 				}
 			}
 		}
 		
 		int result = stats[0];
-		memo.put(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4, result);
-		if (result >= best){
+		memo.put(" " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4 + " " + w5, result);
+		if (result > best){
 			best = result;
-			bestWeights = " " + knn + " " + w1 + " " + w2 + " " + w3 + " " + w4;
-			System.out.println("score: " + best + " bestWeights " + bestWeights);
+			bestWeights = w1 + " " + w2 + " " + w3 + " " + w4 + " " + w5;
+//			System.out.println("score: " + best + " bestWeights " + bestWeights);
 		}
-		if (result >= max){
-			System.out.println("LIVED best: " + best + bestWeights + " max: " + max + " result: " + result +  " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
-			hiddenWeights(test, train, fileType, knn, w1, w2, w3 + 1, w4, result);
-			hiddenWeights(test, train, fileType, knn, w1, w2, w3, w4 + 1, result);
-			hiddenWeights(test, train, fileType, knn, w1, w2 + 1, w3, w4, result);
-			hiddenWeights(test, train, fileType, knn, w1 + 1, w2, w3, w4, result);
+		if (result > max){
+//			System.out.println("LIVED best: " + best + bestWeights + " max: " + max + " result: " + result +  " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
+			hiddenWeights(test, train, fileType, knn, w1, w2, w3 + 1, w4, w5, result);
+			hiddenWeights(test, train, fileType, knn, w1, w2, w3, w4 + 1, w5, result);
+			hiddenWeights(test, train, fileType, knn, w1, w2 + 1, w3, w4, w5,  result);
+			hiddenWeights(test, train, fileType, knn, w1 + 1, w2, w3, w4, w5, result);
+			hiddenWeights(test, train, fileType, knn, w1 + 1, w2, w3, w4, w5 + 1, result);
 		}else{
-			System.out.println("DIED best: " + best + bestWeights + " max: " + max + " result: " + result + " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
+//			System.out.println("DIED best: " + best + bestWeights + " max: " + max + " result: " + result + " knn: " + knn + " lengthsWeighted: " + w1 + " anglesWeights: " + w2 + " distanceWeighted: " + w3 + " movesWeighted: " + w4 );
 		}
 		return best;
 	}

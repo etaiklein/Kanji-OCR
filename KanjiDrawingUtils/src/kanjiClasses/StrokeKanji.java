@@ -260,12 +260,12 @@ public class StrokeKanji extends Kanji{
 //		System.out.println("x: " + averageDistance[0] + " y: " + averageDistance[1]);
 
 		//average the midpoints
-		averageDistance[0] = averageDistance[0]/numstrokes;
-		averageDistance[1] = averageDistance[0]/numstrokes;
+		averageDistance[0] = averageDistance[0]/(numstrokes+1);
+		averageDistance[1] = averageDistance[0]/(numstrokes+1);
 
 		//find each stroke's distance from the midpoint
 		for (int j = 0; j < distances.length; j++){
-			distances[j] = distances[j] / averageDistance[j%2];
+			distances[j] = distances[j] / (averageDistance[j%2] + 1);
 		}
 
 		return distances;
@@ -298,6 +298,7 @@ public class StrokeKanji extends Kanji{
 		int weightAngles = 1;
 		int weightDistances = 12;
 		int weightMoves = 3;
+		
 
 		int sum = 0;
 				
@@ -325,17 +326,15 @@ public class StrokeKanji extends Kanji{
 	 * 
 	 * @summary Computes a score based on how different one kanji is from this kanji using weight inputs
 	 * 
-	 * @param kanji - The pixels of the Kanji to Compare to
+	 * @param kanji - The Kanji to Compare to
 	 * @return sum - the difference score
 	 * 
 	 * @pseudocode
 	 * 1. loop through each kanji's strokes
-	 * 2. Sum the difference between lengths, angles, and moves
+	 * 2. Sum the difference between lengths, angles distances and number of strokes
 	 * 
-	 * @note: moves is weighted by 100 since it is a more useful feature
-	 * @note: there are no average values for KNN - avex[1] is the same as self.x[1]
 	 */
-	public double distance(StrokeKanji kanji, double weightLengths, double weightAngles, double weightDistances, double weightMoves){
+	public double distance(StrokeKanji kanji, double weightLengths, double weightAngles, double weightDistances, double weightMoves, double weightStrokes){
 
 		
 		distances = distanceFromCenter();
@@ -360,7 +359,9 @@ public class StrokeKanji extends Kanji{
 
 			i++;
 		}
-
+		
+		//pre-weighted since this number is much smaller on average than the others
+		sum+= weightStrokes * Math.abs(numstrokes - kanji.numstrokes);
 		return sum;
 	}		
 	/**

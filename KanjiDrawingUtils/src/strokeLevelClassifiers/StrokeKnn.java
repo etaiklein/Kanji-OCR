@@ -28,8 +28,6 @@ import classifierInterfaces.KNNInterface;
 import kanjiClasses.*;
 
 
-
-
 public class StrokeKnn implements KNNInterface{
 
 
@@ -48,7 +46,6 @@ public class StrokeKnn implements KNNInterface{
 		//how many data points do we look at to determine a new point's classification?
 		kNearest = k;
 	}
-
 
 
 	/*************************** METHODS ***************************/
@@ -89,7 +86,7 @@ public class StrokeKnn implements KNNInterface{
 		//for each new vector
 		for (StrokeKanji k : vectors){
 			//get the new vector's distance value
-			k.distance = (int) k.distance(kanji);
+			k.distance = (int) k.distance(kanji, 0, 0, 1, 0, 0);
 		}
 
 
@@ -99,7 +96,6 @@ public class StrokeKnn implements KNNInterface{
 		Collections.sort(vectors, new Comparator<StrokeKanji>(){
 
 			public int compare(StrokeKanji v1, StrokeKanji v2) {
-				//				System.out.println(v1.label + " " + v2.label);
 				if (v1.distance > v2.distance){
 					return 1;
 				}
@@ -122,7 +118,6 @@ public class StrokeKnn implements KNNInterface{
 
 			//get the current label
 			char currentLabel = vectors.get(i).label;
-			//			System.out.println("keybuilding:" + currentLabel);
 
 			// if we've seen the label before, increase the value by 1
 			if (labelCount.containsKey(currentLabel)){
@@ -141,7 +136,6 @@ public class StrokeKnn implements KNNInterface{
 		Character max = keys.iterator().next();
 
 		for (Character key : keys ){
-			//			System.out.println("key:" + key);
 			if (labelCount.get(key) > labelCount.get(max)){
 				max = key;
 			}
@@ -151,7 +145,6 @@ public class StrokeKnn implements KNNInterface{
 		//5. track stats
 
 
-		//				System.out.println("guess: " + max + "actual: " + v1.label);
 		if (kanji.label.equals(max)){
 			stats[0] += 1; 
 
@@ -161,30 +154,25 @@ public class StrokeKnn implements KNNInterface{
 				counter.put(kanji.label, new Integer[]{1,0});
 			}
 
-
 		} 
 		else{ stats[1] += 1;
 
-		if (counter.containsKey(kanji.label)){
-			counter.put(kanji.label, new Integer[]{counter.get(kanji.label)[0], counter.get(kanji.label)[1] + 1});
-		}else{
-			counter.put(kanji.label, new Integer[]{0,1});
-		}
+			if (counter.containsKey(kanji.label)){
+				counter.put(kanji.label, new Integer[]{counter.get(kanji.label)[0], counter.get(kanji.label)[1] + 1});
+			}else{
+				counter.put(kanji.label, new Integer[]{0,1});
+			}
 
 		}
 
 		//6. set the label
 
-		//set the label
-
-
 		Character original = kanji.label;
 		kanji.label = max;
 
-		System.out.println("label: " + max);
-
-		System.out.println("for label: " + original + " correct: " + counter.get(original)[0] + "false: " + counter.get(original)[1]);
-		System.out.println("for total at label " + kanji.label + " correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / ((double)stats[1] + (double)stats[1])));
+//		System.out.println("label: " + max);
+//		System.out.println("for label: " + original + " correct: " + counter.get(original)[0] + "false: " + counter.get(original)[1]);
+//		System.out.println("for total at label " + kanji.label + " correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / (((double)stats[1] + (double)stats[1]))));
 
 		return kanji;
 	}
@@ -230,16 +218,12 @@ public class StrokeKnn implements KNNInterface{
 				}
 			}	
 
-			System.out.println("correct: " + stats[0] + "incorrect: " + stats[1] + "percent" + ((double)stats[0] / ((double)stats[0] + (double)stats[1])));
+			System.out.println("correct: " + stats[0] + "incorrect: " + stats[1] + " percent " + ((double)stats[0] / ((double)stats[0] + (double)stats[1])));
 
 		}
 
 		return (int)stats[0];
 	}
-
-
-
-
 
 
 }

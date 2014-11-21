@@ -5,6 +5,9 @@ package strokeLevelClassifiers;
  * 
  * Uses the striato-cortical loop iterative classification algorithm for sorting kanji
  * 
+ * Clusterer - custom K-means
+ * Classifier - distance method comparison for tree descent
+ * 
  * The basic idea is that anything can be grouped and subgrouped until each group is mostly uniform
  * 
  * Etai Klein
@@ -15,30 +18,19 @@ package strokeLevelClassifiers;
 
 import java.io.File;
 import java.util.ArrayList;
-import java.util.Enumeration;
-import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Queue;
 
 import kanjiClasses.*;
-import trees.CLSTree;
-import trees.CLSTree.CLSNode;
-import weka.classifiers.Evaluation;
-import weka.classifiers.lazy.IBk;
-import weka.clusterers.ClusterEvaluation;
-import weka.clusterers.SimpleKMeans;
-import weka.core.Attribute;
-import weka.core.FastVector;
-import weka.core.Instance;
-import weka.core.Instances;
-import weka.core.SparseInstance;
+import trees.CSLTree;
+import trees.CSLTree.CLSNode;
 
 
 public class StriatoCorticalLoop {
 	
 	
 	Queue<CLSNode> Q = new LinkedList<CLSNode>();
-	CLSTree T = new CLSTree();
+	CSLTree T = new CSLTree();
 	
 	
 	/** isUniform
@@ -49,128 +41,215 @@ public class StriatoCorticalLoop {
 	
 	public boolean isUniform(CLSNode node){
 		//is the current node uniform and equivalent?
-//		System.out.println("equality check: ");
 		boolean uniform = true;
+		if (node.getData().size() < 2){return true;}
+
 		Character label = node.getData().get(0).label;
 		for (StrokeKanji k : node.getData()){
-//			System.out.print(k.label);
 			if (!k.label.equals(label)){
 				uniform = false;
 				break;
 			}
 		}
-//		System.out.println(uniform);
 		return uniform;
 	}
 	
-	/** kanjiToARFF
+	/** getCentroid
 	 * 
-	 * Takes a list of Kanji and outputs it into a format usable by WEKA
-	 * @return 
+	 * returns a randomized StrokeKanji
 	 * 
 	 */
 	
-	public Instances kanjiToARFF(CLSNode node){
-		FastVector      atts, attVals;
-		Instances       data;
-		double[]        vals;
+	public StrokeKanji getCentroid(){
+		StrokeKanji centroid = new StrokeKanji(new int[30]);
+		for (int i = 0; i < 15; i++){
+			centroid.angles[i] = (int) (Math.random() * 180 * ( Math.random() -.5));
+			centroid.moves[i] = (int) (Math.random() * 180 * (Math.random() - .5));
+			centroid.lengths[i] = (int) (Math.random() * 600);
+			centroid.distances[i*2] = (int) (Math.random() * 5);
+			centroid.distances[i*2 + 1] = (int) (Math.random() * 100);
 
-		// 1. set up attributes
-		atts = new FastVector();
-
-		attVals = new FastVector();
-
-		for (StrokeKanji kanji : node.getData()){
-			if (!attVals.contains("" + kanji.label)){
-				attVals.addElement("" + kanji.label);
-			}
-			
 		}
-
-		atts.addElement(new Attribute("KanjiName", attVals, 0));		
-		
-		// - numerical features
-		for (int i = 0; i < 30; i++){
-			atts.addElement(new Attribute("Length" + (i)));
-			atts.addElement(new Attribute("Angle" + (i)));
-			atts.addElement(new Attribute("DistanceX" + (i)));
-			atts.addElement(new Attribute("DistanceY" + (i)));
-			if (i != 30){
-				atts.addElement(new Attribute("Movement" + (i)));
-			}
-		}
-
-
-		// 2. create Instances object
-		data = new Instances("Kanjis", atts, 0);
-
-		
-		//3. Add Instances in chunks
-
-		for (StrokeKanji kanji : node.getData()){
-				
-			// 3. fill with data
-			vals = new double[data.numAttributes()];
-			//add the label to values
-			vals[0] = attVals.indexOf("" + kanji.label);
-
-			//add the features to values
-			int j = 1;
-			for (int i = 0; i < 30; i++){
-				vals[j++] = kanji.lengths[i];
-				vals[j++] = kanji.angles[i];
-				vals[j++] = kanji.distances[i*2];
-				vals[j++] = kanji.distances[i*2 + 1];
-				if (i != 29){vals[j++] = kanji.moves[i];}
-			}
-
-			//add the variables to the instance
-			data.add(new SparseInstance(1.0, vals));
-		}
-
-		return data;
+		return centroid;
 	}
+	
+	/** getRanges
+	 * 
+	 * prints the range of values for each potential feature to help pick smarter centroids
+	 * 
+	 */
+
+	
+	public void getRanges(){
+
+		File train = new File("./kanjiTXTtrain");
+		String fileType = ".txt";
+		
+		int[] minangle = new int[30];
+		for (int i = 0; i < 30; i++){ minangle[i] = Integer.MAX_VALUE;}
+		int[] maxangle = new int[30];
+		int[] minlengths = new int[30];
+		for (int i = 0; i < 30; i++){ minlengths[i] = Integer.MAX_VALUE;}
+		int[] maxlengths = new int[30];
+		int[] mindistances = new int[60];
+		for (int i = 0; i < 60; i++){ mindistances[i] = Integer.MAX_VALUE;}
+		int[] maxdistances = new int[60];
+		int[] minmoves = new int[29];
+		for (int i = 0; i < 29; i++){ minmoves[i] = Integer.MAX_VALUE;}
+		int[] maxmoves = new int[29];
+
+
+		//training
+		for (final File fileEntry : train.listFiles()) {
+			if (fileEntry.getName().endsWith(fileType)){
+				for (StrokeKanji kanji : StrokeKanji.getKanjis(fileEntry, fileType)){
+					if (kanji != null){
+						kanji.distances = kanji.distanceFromCenter();
+						for (int k = 0; k < 30; k++){
+							if (kanji.angles[k] < minangle[k]){minangle[k] = kanji.angles[k];} 
+							if (kanji.angles[k] > maxangle[k]){maxangle[k] = kanji.angles[k];} 
+							if (kanji.lengths[k] < minangle[k]){minlengths[k] = kanji.lengths[k];} 
+							if (kanji.lengths[k] > maxangle[k]){maxlengths[k] = kanji.lengths[k];} 
+							if (kanji.distances[k*2] < mindistances[k*2]){mindistances[k*2] = kanji.distances[k*2];} 
+							if (kanji.distances[k*2] > maxdistances[k*2]){maxdistances[k*2] = kanji.distances[k*2];} 
+							if (kanji.distances[k*2 + 1] < mindistances[k*2 + 1]){mindistances[k*2 + 1] = kanji.distances[k*2 + 1];} 
+							if (kanji.distances[k*2 + 1] > maxdistances[k*2 + 1]){maxdistances[k*2 + 1] = kanji.distances[k*2 + 1];} 
+							if (k < 29 && kanji.moves[k] < minmoves[k]){minmoves[k] = kanji.moves[k]; }
+							if (k < 29 && kanji.moves[k] > maxmoves[k]){maxmoves[k] = kanji.moves[k]; }
+						}
+					}
+				}
+			}
+		}
+		
+		for (int k = 0; k < 30; k++){
+			System.out.println( "-------" + k + "-------");
+			System.out.println("minangle: " + minangle[k]);
+			System.out.println("maxangle: " + maxangle[k]);
+			System.out.println("minlength: " + minlengths[k]);
+			System.out.println("maxlength: " + maxlengths[k]);
+			System.out.println("mindistances: " + mindistances[k*2]);
+			System.out.println("maxdistances: " + maxdistances[k*2]);
+			System.out.println("mindistances: " + mindistances[k*2 + 1]);
+			System.out.println("maxdistances: " + maxdistances[k*2 + 1]);
+			if (k > 28){continue;}
+			System.out.println("minmoves" + minmoves[k]);
+			System.out.println("maxmoves" + maxmoves[k]);
+		}
+		
+	}
+	
+	/** converged
+	 * 
+	 * tests equality of two lists of centroids (StrokeKanji)
+	 * 
+	 *  @return boolean - is converged?
+	 */
+	
+	public boolean converged(ArrayList<StrokeKanji> centroids, ArrayList<StrokeKanji> oldCentroids){
+		try {
+		for (int j = 0; j < centroids.size() ; j++){
+			for (int k = 0; k < 30; k++){
+				if (centroids.get(j).angles[k] != oldCentroids.get(j).angles[k]){return false;}
+				if (centroids.get(j).lengths[k] != oldCentroids.get(j).lengths[k]){return false;}
+				if (centroids.get(j).distances[k*2] != oldCentroids.get(j).distances[k*2]){return false;}
+				if (centroids.get(j).distances[k*2 + 1] != oldCentroids.get(j).distances[k*2 + 1]){return false;}
+				if (k < 29 && centroids.get(j).moves[k] != oldCentroids.get(j).moves[k]){return false;}
+			}
+		}
+		return true;
+		}
+		catch (Exception e){
+		return false;
+		}
+	}
+	
 	
 	/** K-means
 	 * 
 	 * Classifies a group into k subgroups
 	 * @return 
 	 * @return 
-	 * @throws Exception 
 	 * 
 	 */
 	
-	public HashMap<Instance, ArrayList<StrokeKanji>> kMeans(CLSNode node, int numClusters) throws Exception{
-		//build cluster
-		SimpleKMeans K = new SimpleKMeans();
-		K.setNumClusters(numClusters);
-		K.setPreserveInstancesOrder(true);
-		Instances I = kanjiToARFF(node);
-		K.buildClusterer(I);
+	public ArrayList<ArrayList<StrokeKanji>> kMeans(CLSNode currentNode, int numCentroids){
 		
-		//assign kanjis
-		HashMap<Instance,ArrayList<StrokeKanji>> dictionary = new HashMap<Instance,ArrayList<StrokeKanji>>();
-		int[] assignments = K.getAssignments();
-		ArrayList<StrokeKanji> kanjis = node.getData();
-		int i=0;
-		for(int clusterNum : assignments) {
-			Instance centroid = K.getClusterCentroids().instance(clusterNum);
-			//find and update
-			if (dictionary.containsKey(centroid)){
-				dictionary.get(centroid).add(kanjis.get(i));
-			}
-			//or create
-			else{
-				ArrayList<StrokeKanji> ask = new ArrayList<StrokeKanji>();
-				ask.add(kanjis.get(i));
-				dictionary.put(centroid, ask);
-			}
-		    i++;
+		//1. initialize centroids
+		int limit = 20;
+		int it = 0;
+		ArrayList<ArrayList<StrokeKanji>> data = new ArrayList<ArrayList<StrokeKanji>>(numCentroids);
+		ArrayList<StrokeKanji> centroids = new ArrayList<StrokeKanji>(), oldCentroids = new ArrayList<StrokeKanji>();
+		for (int i = 0; i < numCentroids; i++){
+			centroids.add(i, getCentroid());
 		}
-		
-		return dictionary;
+		//2. while not yet converged or under iteration limit
+		while (!converged(centroids, oldCentroids) && it < limit){
+			//2a iterate, set centroids
+			oldCentroids = centroids;
+			it++;
+			
+			//2b label data by closest centroid
+			data = new ArrayList<ArrayList<StrokeKanji>>(numCentroids);
+			for (int i = 0; i < numCentroids; i++){
+				data.add(new ArrayList<StrokeKanji>());
+			}
+			
+			for (StrokeKanji kanji : currentNode.getData()){
+				double min = Integer.MAX_VALUE;
+				int closest = -1;
+				for (int i = 0; i < centroids.size(); i++){
+					double dist = kanji.distance(centroids.get(i), 1, 1, 3, 3, 10);
+					if (dist < min){
+						min = dist;
+						closest = i;
+					}
+				}
+				data.get(closest).add(kanji);
+				
+			}
+			
+			//2c reassign centroids
+			for (int i = 0; i < numCentroids; i++){
+				int datasize = data.get(i).size();
+				//assign new centroids if empty
+				if (datasize == 0){
+					centroids.remove(i);
+					centroids.add(i, getCentroid());
+					continue;
+				}else{
+				}
+				
+				//get average centroid 
+				centroids.get(i).aveangles = new int[30];
+				centroids.get(i).avelengths = new int[30];
+				centroids.get(i).avemoves = new int[29];
+				centroids.get(i).avedistances = new int[60];
+				for (int j = 0; j < datasize ; j++){
+					for (int k = 0; k < 30; k++){
+						centroids.get(i).aveangles[k] += data.get(i).get(j).angles[k];
+						centroids.get(i).avelengths[k] += data.get(i).get(j).lengths[k];
+						centroids.get(i).avedistances[k*2] += data.get(i).get(j).distances[k*2];
+						centroids.get(i).avedistances[k*2 + 1] += data.get(i).get(j).distances[k*2 + 1];
+						if (k < 29){centroids.get(i).avemoves[k] += data.get(i).get(j).moves[k];}
+					}
+				}
+				for (int k = 0; k < 30; k++){
+					centroids.get(i).angles[k] = centroids.get(i).aveangles[k] / datasize;
+					centroids.get(i).avelengths[k] += centroids.get(i).avelengths[k] / datasize;
+					centroids.get(i).avedistances[k*2] += centroids.get(i).avedistances[k*2] / datasize;
+					centroids.get(i).avedistances[k*2 + 1] += centroids.get(i).avedistances[k*2 + 1] / datasize;
+					if (k < 29){centroids.get(i).avemoves[k] += centroids.get(i).avemoves[k] / datasize;}
+				}
+				
+			}
+			
+			
+		}
+		//3. return centroids
+		return data;
 	}
-	
+		
 	/**
 	 * Classify
 	 * 
@@ -179,7 +258,7 @@ public class StriatoCorticalLoop {
 	 * 
 	 */
 		
-	public void classify(CLSTree T, int numClusters, ArrayList<StrokeKanji> ary) throws Exception{
+	public void classify(CSLTree T, int numClusters, ArrayList<StrokeKanji> ary) throws Exception{
 		
 		int correct = 0;
 		int incorrect = 0;
@@ -191,70 +270,27 @@ public class StriatoCorticalLoop {
 			while (!Q.isEmpty()){
 				CLSNode currentNode = Q.poll();
 				double min = Integer.MAX_VALUE;
-				best = null;
+				best = T.getRoot();
 				for (CLSNode child : currentNode.children){
-					double dist = kanji.distance(child.label);
+					double dist = kanji.distance(child.label, 1, 1, 3, 3, 10);
 					if (dist <= min){
 						min = dist;
 						best = child;
-						System.out.println(kanji.label + " " + min + " " + best);
 					}
 				}
 				if (best !=null && !best.children.isEmpty()){
 					Q.add(best);
 				}
 			}
-			if (kanji.label.equals(best.label.label)){
+			if (best != null && kanji.label.equals(best.label)){
 				correct +=1;
 			}else{
 				incorrect +=1;
 			}
-			
-//			System.out.println("kanji " + kanji.label + " classified as " + best.label.label);
-			
+						
 		}
 		System.out.println( "correct: " + correct + "incorrect: " + incorrect);
-//		
-//		//build cluster
-//		Instances centroids = T.getClusterCentroids();
-//		
-//		FastVector attVals = new FastVector();
-//
-//		// - nominal
-//		for (StrokeKanji kanji : ary){
-//			if (!attVals.contains("" + kanji.label)){
-//				attVals.addElement("" + kanji.label);
-//			}
-//			
-//		}		
-//		
-//		for (int i = 0; i < centroids.numInstances(); i++){
-////			System.out.println(centroids.instance(i).toString(new Attribute("KanjiName", attVals, 0)));
-//		}
-//		
-//		centroids.setClassIndex(0);
-//		IBk IBk = new IBk();
-//		IBk.buildClassifier(centroids);
-//		IBk.setKNN(2);
-//
-//		CLSNode testNode = T.new CLSNode(0);
-//		testNode.setData(ary);
-//		Instances test = kanjiToARFF(testNode);
-//		test.setClassIndex(0);
-//		
-//		Evaluation eval = new Evaluation(test);
-//		eval.evaluateModel(IBk, test);
-//		System.out.println(eval.toSummaryString("\n" + "KNN" + " Results\n======\n", false));
-//		Instances labeled = new Instances(test);
-//
-//		// label instances
-//		for (int i = 0; i < test.numInstances(); i++) {
-//			double label = IBk.classifyInstance(test.instance(i));
-//			labeled.instance(i).setClassValue(label);
-//			//comment this line in for more information
-//				System.out.println(label + " -> " + test.classAttribute().value((int) label));
-//		}
-//		
+
 	}
 	/**
 	 * test
@@ -272,7 +308,7 @@ public class StriatoCorticalLoop {
 	 */
 	public void test(File test, File train, String fileType) throws Exception {
 		
-		for (int numClusters = 2; numClusters < 3; numClusters++){
+			int numClusters = 3;
 			T.getRoot().children.clear();
 			T.depth = 0;
 			
@@ -292,12 +328,12 @@ public class StriatoCorticalLoop {
 			while (!Q.isEmpty()) {
 				CLSNode currentNode = Q.poll();
 				if (isUniform(currentNode)) {continue;}
-				HashMap<Instance, ArrayList<StrokeKanji>> clusters = kMeans(currentNode, numClusters);
-				for (Instance centroid : clusters.keySet()){
+				  ArrayList<ArrayList<StrokeKanji>> clusters = kMeans(currentNode, numClusters);
+				for ( ArrayList<StrokeKanji> cluster : clusters){
+					if (cluster.size() < 1){continue;}
 					CLSNode childNode = T.new CLSNode(T.depth);
-					childNode.setCentroid(centroid);
-					childNode.setData(clusters.get(centroid));
-					childNode.label = clusters.get(centroid).get(0);
+					childNode.setData(cluster);
+					childNode.label = cluster.get(0);
 					childNode.parent = currentNode;
 					currentNode.children.add(childNode);
 					Q.add(childNode);
@@ -314,27 +350,26 @@ public class StriatoCorticalLoop {
 							testKanjis.add(kanji);
 						}
 					}
-					classify(T, 2, testKanjis);
+					classify(T, numClusters, testKanjis);
 				}	
 			}
 			
 		System.out.println("num"+ numClusters + " " + numClusters * T.depth + "\n" + T);
-		}
-	}
 		
+	}
 	
 	public static void main(String argv[]){
 		
 		File train = new File("./kanjiTXTtrain");
-		File test = new File("./kanjiTXTtest");
-
 		String fileType = ".txt";
+		File test = new File("./kanjiTXTtest");
 		
-		StriatoCorticalLoop CLS = new StriatoCorticalLoop();
+		StriatoCorticalLoop SCL = new StriatoCorticalLoop();
 		
 		try {
-			CLS.test(test, train, fileType);
+			SCL.test(test, train, fileType);
 		} catch (Exception e) {
+			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
